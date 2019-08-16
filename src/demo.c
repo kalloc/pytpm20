@@ -1,0 +1,173 @@
+#include "utils.h"
+#include "parg.h"
+
+#define SET_CMD(x, Y)  \
+    if(x != CMD_NIL) { \
+        fprintf(stderr, "Only one cmd option allowed (unwanted -%c)\n", c); \
+        return 1; \
+    }; \
+    x = Y;
+
+#define demo_check_rc(X) \
+    if(X.rc != TSS2_RC_SUCCESS) { \
+        return X.rc; \
+    }
+
+static const struct parg_option params_config[] = {
+	{ "tcti",   PARG_REQARG, NULL, 'T' },
+	{ "random", PARG_NOARG,  NULL, 'r' },
+	{ "clear",  PARG_NOARG,  NULL, 'c' },
+	{ "pub",    PARG_NOARG,  NULL, 'p' },
+	{ "sign",   PARG_NOARG,  NULL, 's' },
+	{ "input",  PARG_OPTARG, NULL, 'i' },
+	{ "output", PARG_OPTARG, NULL, 'o' },
+	{ 0, 0, 0, 0 }
+};
+
+
+int demo_random(context ctx, const char *output) {
+    unsigned char buf[32];
+    size_t len = 0;
+    context result;
+
+    printf("Demo random\n");
+    result = get_random(ctx, (unsigned char **)&buf, &len);
+    demo_check_rc(result);
+
+    printf("TPM returned random bytes length %d:\n", (int)len);
+    if(output) {
+        export_to_file(output, buf, len);
+    } else {
+        export_to_stdout(buf, len);
+    }
+    return 0;
+}
+
+
+int demo_sign(context ctx, const char *filename, const char *output) {
+    unsigned char data[1024], *buffer;
+    size_t data_len = 0, buffer_len = 0;
+    context result;
+
+    printf("Demo sign\n");
+
+    FILE *fp = fopen(filename, "rb");
+    data_len = fread(data, 1, 1024, fp);
+    fclose(fp);
+
+    result = sign(ctx, data, data_len, &buffer, &buffer_len);
+    demo_check_rc(result);
+
+    printf("TPM returned random bytes length %d:\n", (int)buffer_len);
+    if(output) {
+        export_to_file(output, buffer, buffer_len);
+    } else {
+        export_to_stdout(buffer, buffer_len);
+    }
+    return 0;
+}
+
+
+int demo_pub(context ctx, const char *output) {
+    unsigned char *buf;
+    size_t len = 0;
+    context result;
+
+    printf("Demo pub\n");
+    result = get_pub(ctx, (unsigned char **)&buf, &len);
+    demo_check_rc(result);
+
+    printf("TPM returned Public key in PEM format\n");
+    if(output) {
+        export_to_file(output, buf, len);
+    } else {
+        export_to_stdout(buf, len);
+    }
+    return 0;
+}
+
+
+int demo_clear(context ctx) {
+    printf("Demo pub\n");
+    return 0;
+}
+
+
+static void print_help(char *name) {
+    fprintf(stderr, "Usage: %s [options]\n", name);
+    fprintf(stderr, " -T or --tcti   Tcti device type\n");
+    fprintf(stderr, " -r or --random Get 0x20 random bytes to stdout in hex\n");
+    fprintf(stderr, " -s or --sign   Sign data from input or stdin and return signature to output\n");
+    fprintf(stderr, " -c or --clear  Clear storage\n");
+    fprintf(stderr, " -p or --pub    Get public key to output file or stdout\n");
+    fprintf(stderr, " -o or --output Output file instead of stdout\n");
+    fprintf(stderr, " -i or --input  Input file instead of stdin\n");
+    fprintf(stderr, " -h or --help   Print this help\n");
+}
+
+
+int main(int argc, char *argv[]) {
+    struct parg_state ps;
+    int c;
+    int li;
+    context ctx;
+    char *output = NULL, *input = NULL;
+    enum CMD {
+        CMD_RANDOM,
+        CMD_SIGN,
+        CMD_PUB,
+        CMD_CLEAR,
+        CMD_HELP,
+        CMD_NIL
+    } cmd = CMD_NIL;
+
+	parg_init(&ps);
+
+    while ((c = parg_getopt_long(&ps, argc, argv, "o:i:T:scprh", params_config, &li)) != -1) {
+        switch (c) {
+            case 'o':
+                output = strdup(ps.optarg);
+                break;
+            case 'i':
+                input = strdup(ps.optarg);
+                break;
+            case 'T':
+                ctx = init_tpm_device(ps.optarg);
+                if(!ctx.esys_ctx) {
+                    fprintf(stderr, "Invalid or unsupported tcti type '%s'\n", ps.optarg);
+                    return 1;
+                };
+                break;
+            case 'r':
+                SET_CMD(cmd, CMD_RANDOM);
+                break;
+            case 's': 
+                SET_CMD(cmd, CMD_SIGN);
+                break;
+            case 'p': 
+                SET_CMD(cmd, CMD_PUB);
+                break;
+            case 'c': 
+                SET_CMD(cmd, CMD_CLEAR);
+                break;
+            case '?':
+                fprintf(stderr, "Unknown argument or missing value for '%c'\n", ps.optopt);
+                return 1;
+            case 'h':
+                break;
+        }
+    }
+    switch(cmd) {
+        case CMD_RANDOM:
+            return demo_random(ctx, output);
+        case CMD_SIGN: 
+            return demo_sign(ctx, input, output);
+        case CMD_PUB: 
+            return demo_pub(ctx, output);
+        case CMD_CLEAR: 
+            return demo_clear(ctx);
+        default:
+            print_help(argv[0]);
+    }
+    return 0;
+}
