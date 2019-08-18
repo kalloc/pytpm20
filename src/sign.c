@@ -34,7 +34,7 @@ static unsigned char * extract_ecdsa(TPMS_SIGNATURE_ECDSA *ecdsa, size_t *size) 
     ASN1_INTEGER *asn1_r = ASN1_INTEGER_new();
     ASN1_INTEGER *asn1_s = ASN1_INTEGER_new();
     if (!asn1_r || !asn1_s) {
-       // LOG_ERR("oom");
+       /* LOG_ERR("oom"); */
         goto out;
     }
 
@@ -48,14 +48,14 @@ static unsigned char * extract_ecdsa(TPMS_SIGNATURE_ECDSA *ecdsa, size_t *size) 
     ASN1_STRING_set(asn1_r, R->buffer, R->size);
     int size_r = i2d_ASN1_INTEGER(asn1_r, &buf_r);
     if (size_r < 0) {
-       //  LOG_ERR("Error converting R to ASN1");
+       /*  LOG_ERR("Error converting R to ASN1");*/
         goto out;
     }
 
     ASN1_STRING_set(asn1_s, S->buffer, S->size);
     int size_s = i2d_ASN1_INTEGER(asn1_s, &buf_s);
     if (size_s < 0) {
-       //  LOG_ERR("Error converting R to ASN1");
+       /*  LOG_ERR("Error converting R to ASN1");*/
         goto out;
     }
 
@@ -65,13 +65,13 @@ static unsigned char * extract_ecdsa(TPMS_SIGNATURE_ECDSA *ecdsa, size_t *size) 
      * work, so fail...loudly.
      */
     if (size_s + size_r > 0xFF) {
-       // LOG_ERR("Cannot encode ASN1 Sequence, too big!");
+       /* LOG_ERR("Cannot encode ASN1 Sequence, too big!");*/
         goto out;
     }
 
     buf = malloc(size_s + size_r + SEQ_HDR_SIZE);
     if (!buf) {
-        // LOG_ERR("oom");
+        /* LOG_ERR("oom");*/
         goto out;
     }
 
@@ -103,8 +103,8 @@ out:
     return buf;
 }
 
-context sign(
-        context ctx,
+TPM2_RC sign(
+        context *ctx,
         unsigned char *input, size_t input_size,
         unsigned char **signature_raw, size_t *signature_size
     ) {
@@ -130,9 +130,9 @@ context sign(
     memcpy(&buffer.buffer, input, input_size);
     buffer.size = input_size;
 
-    // make hash from buffer
+    /* make hash from buffer*/
     rc = Esys_Hash(
-        ctx.esys_ctx,
+        ctx->ectx,
         ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
         &buffer,
         TPM2_ALG_SHA256,
@@ -140,10 +140,10 @@ context sign(
         &digest,
         &validation);
 
-    check_rc(rc, "");
+    check_rc(rc);
 
     rc = Esys_Sign(
-            ctx.esys_ctx,
+            ctx->ectx,
             object,
             signingkey_obj_session_handle,
             ESYS_TR_NONE,
@@ -152,15 +152,14 @@ context sign(
             &in_scheme,
             validation,
             &signature);
+    check_rc(rc);
 
-    check_rc(rc, "");
+    rc = Esys_TR_Close(ctx->ectx, &object);
+    check_rc(rc);
 
-    rc = Esys_TR_Close(ctx.esys_ctx, &object);
-    check_rc(rc, "");
-
-    rc = Esys_FlushContext(ctx.esys_ctx, signingkey_obj_session_handle);
-    check_rc(rc, "");
+    rc = Esys_FlushContext(ctx->ectx, signingkey_obj_session_handle);
+    check_rc(rc);
 
     *signature_raw = extract_ecdsa(&signature->signature.ecdsa, signature_size);
-    return makeContext(TSS2_RC_SUCCESS, ctx.esys_ctx);
+    return TSS2_RC_SUCCESS;
 }

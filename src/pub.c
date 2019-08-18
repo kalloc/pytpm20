@@ -1,16 +1,16 @@
 #include "utils.h"
 
 
-context get_pub(context ctx, unsigned char **pubkey, size_t *pubkey_size) {
-    bool rc;
+TPM2_RC get_pub(context *ctx, unsigned char **pubkey, size_t *pubkey_size) {
+    TPM2_RC rc;
     TPM2B_PUBLIC * public = {0};
     ESYS_TR object;
 
-    context result = object_from_tpm(ctx, &object, &public);
-    check_rc(result.rc, "");
+    rc = object_from_tpm(ctx, &object, &public);
+    check_rc(rc);
 
-    if((rc = convert_pubkey_ECC(&public->publicArea, pubkey, pubkey_size)) != true) {
-        return (context){TSS2_BASE_RC_MALFORMED_RESPONSE, NULL, "Unable to convert pubkey"};
+    if(convert_pubkey_ECC(&public->publicArea, pubkey, pubkey_size) != true) {
+        return TSS2_BASE_RC_MALFORMED_RESPONSE;
     }
-    return makeContext(TSS2_RC_SUCCESS, ctx.esys_ctx);
+    return TSS2_RC_SUCCESS;
 }

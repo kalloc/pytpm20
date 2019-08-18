@@ -20,10 +20,17 @@ find_library(tss2-rc.a libtss2-rc.a)
 find_library(tss2-tctildr.a libtss2-tctildr.a)
 
 set(cflags
+    -std=c99 
     -Wall
-    -fPIC
     -Wextra
+    -Werror
+    -ansi
+    # -pedantic
+    -Wformat=2
+    -Wshift-negative-value
     -Wstrict-prototypes
+    -Wstrict-aliasing 
+    -Wunreachable-code 
     -Wno-unused-parameter
 )
 

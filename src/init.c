@@ -7,19 +7,18 @@
 #include <openssl/rsa.h>
 
 
-context tpm_start_auth_session(context ctx, ESYS_TR *session) {
+TPM2_RC tpm_start_auth_session(context *ctx, ESYS_TR *session) {
     TPM2_RC rc;
     TPMT_SYM_DEF symmetric = {.algorithm = TPM2_ALG_NULL};
     rc = Esys_StartAuthSession(
-        ctx.esys_ctx,
+        ctx->ectx,
         ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
         0, TPM2_SE_HMAC, &symmetric, TPM2_ALG_SHA256, session
     );
-    return (context){rc, NULL, ""};
-
+    return rc;
 }
 
-context make_object_tpm(context ctx, ESYS_TR *object) {
+TPM2_RC make_object_tpm(context *ctx, ESYS_TR *object) {
     TPM2_RC rc;
     ESYS_TR session = ESYS_TR_NONE, 
             primaryHandle = ESYS_TR_NONE,
@@ -58,8 +57,8 @@ context make_object_tpm(context ctx, ESYS_TR *object) {
                   }
              },
             .unique.ecc = {
-                 .x = {.size = 0,.buffer = {}},
-                 .y = {.size = 0,.buffer = {}}
+                 .x = {.size = 0,.buffer = {0}},
+                 .y = {.size = 0,.buffer = {0}}
              }
             ,
         }
@@ -68,62 +67,60 @@ context make_object_tpm(context ctx, ESYS_TR *object) {
     TPM2B_DATA outsideInfo = {0};
     TPML_PCR_SELECTION creationPCR = {0};
 
-    context result = tpm_start_auth_session(ctx, &session);
-    check_rc(result.rc, "");
+    rc = tpm_start_auth_session(ctx, &session);
+    check_rc(rc);
 
-    rc = Esys_TR_SetAuth(ctx.esys_ctx, ESYS_TR_RH_OWNER, &authValue);
-    check_rc(rc, "");
+    rc = Esys_TR_SetAuth(ctx->ectx, ESYS_TR_RH_OWNER, &authValue);
+    check_rc(rc);
 
     rc = Esys_CreatePrimary(
-        ctx.esys_ctx, ESYS_TR_RH_OWNER, 
+        ctx->ectx, ESYS_TR_RH_OWNER, 
         session, ESYS_TR_NONE, ESYS_TR_NONE,
         &inSensitive, &inPublic,
         &outsideInfo, &creationPCR, &primaryHandle,
         NULL, NULL, NULL, NULL
     );
-    check_rc(rc, "");
+    check_rc(rc);
 
     rc = Esys_EvictControl(
-        ctx.esys_ctx, 
+        ctx->ectx, 
         ESYS_TR_RH_OWNER, primaryHandle,
         ESYS_TR_PASSWORD, ESYS_TR_NONE, ESYS_TR_NONE,
         OBJECT_PRIMARY_HANDLE, 
         &primaryPersistentHandle
     );
-    check_rc(rc, "");
+    check_rc(rc);
 
     *object = primaryPersistentHandle;
-    rc = Esys_FlushContext(ctx.esys_ctx, primaryHandle);
-    check_rc(rc, "");
-
-    return (context){TSS2_RC_SUCCESS, NULL, ""};
+    rc = Esys_FlushContext(ctx->ectx, primaryHandle);
+    return rc;
 }
 
 
-context object_from_tpm(context ctx, ESYS_TR *object, TPM2B_PUBLIC **public) {
+TPM2_RC object_from_tpm(context *ctx, ESYS_TR *object, TPM2B_PUBLIC **public) {
     TPM2_RC rc;
     TPM2B_NAME *name, *qualified_name;
 
     rc = Esys_TR_FromTPMPublic(
-        ctx.esys_ctx, OBJECT_PRIMARY_HANDLE, 
+        ctx->ectx, OBJECT_PRIMARY_HANDLE, 
         ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
         object
     );
 
     if(rc != TPM2_RC_SUCCESS) {
-        context result = make_object_tpm(ctx, object);
-        check_rc(result.rc, "");
+        rc = make_object_tpm(ctx, object);
+        check_rc(rc);
     }
 
     if(public) {
         rc = Esys_ReadPublic(
-            ctx.esys_ctx, *object,
+            ctx->ectx, *object,
             ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
             public, &name, &qualified_name
         );
-        check_rc(rc, "");
+        check_rc(rc);
     } 
-    return (context){TSS2_RC_SUCCESS, NULL, ""};
+    return rc;
 }
 
 
@@ -135,6 +132,7 @@ bool convert_pubkey_ECC(TPMT_PUBLIC *public, unsigned char **buf, size_t *len) {
     const EC_GROUP *group = NULL;
     BIO *bio = NULL;
     bool result = false;
+    int rc;
 
     TPMS_ECC_POINT *tpm_point = &public->unique.ecc;
 
@@ -160,9 +158,9 @@ bool convert_pubkey_ECC(TPMT_PUBLIC *public, unsigned char **buf, size_t *len) {
         goto out;
     }
 
-    int rc = EC_POINT_set_affine_coordinates_GFp(group, point, x, y, NULL);
+    rc = EC_POINT_set_affine_coordinates_GFp(group, point, x, y, NULL);
     if (!rc) {
-        //print_ssl_error("Could not set affine coordinates");
+        /* Could not set affine coordinates */;
         goto out;
     }
 
@@ -172,12 +170,12 @@ bool convert_pubkey_ECC(TPMT_PUBLIC *public, unsigned char **buf, size_t *len) {
     }
 	
     if ((bio = BIO_new(BIO_s_mem())) == NULL) {
-		// Cannot create buffer
+		/* Cannot create buffer */
 		goto out;
 	}
 
     if(!(i2d_EC_PUBKEY_bio(bio, key))) {
-        // cannot export key
+        /* cannot export key */
         goto out;
     }
 
@@ -205,22 +203,23 @@ out:
 }
 
 
-context init_tpm_device(const char *tcti) {
+TPM2_RC init_tpm_device(const char *tcti, context *ctx) {
     TSS2_TCTI_CONTEXT *tcti_context;
-    ESYS_CONTEXT *ctx = NULL;
+
     TSS2_RC rc;
 
     rc = Tss2_TctiLdr_Initialize(tcti, &tcti_context);
-    check_rc(rc, "Unable to attach device");
+    check_rc(rc);
 
-    rc = Esys_Initialize(&ctx, tcti_context, NULL);
-    check_rc(rc, "Unable to initialize device");
+    rc = Esys_Initialize(&ctx->ectx, tcti_context, NULL);
+    check_rc(rc);
 
-    rc = Esys_Startup(ctx, TPM2_SU_CLEAR);
-    check_rc(rc, "Unable to startup");
-    return makeContext(rc, ctx);
+    rc = Esys_Startup(ctx->ectx, TPM2_SU_CLEAR);
+    check_rc(rc);
+
+    return rc;
 }
 
 void cleanup_tpm_device(context *ctx) {
-    Esys_Finalize(&ctx->esys_ctx);
+    Esys_Finalize(&ctx->ectx);
 }

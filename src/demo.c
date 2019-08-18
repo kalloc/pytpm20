@@ -8,11 +8,6 @@
     }; \
     x = Y;
 
-#define demo_check_rc(X) \
-    if(X.rc != TSS2_RC_SUCCESS) { \
-        return X.rc; \
-    }
-
 static const struct parg_option params_config[] = {
 	{ "tcti",   PARG_REQARG, NULL, 'T' },
 	{ "random", PARG_NOARG,  NULL, 'r' },
@@ -25,14 +20,14 @@ static const struct parg_option params_config[] = {
 };
 
 
-int demo_random(context ctx, const char *output) {
+int demo_random(context *ctx, const char *output) {
     unsigned char buf[32];
     size_t len = 0;
-    context result;
+    TPM2_RC rc;
 
     printf("Demo random\n");
-    result = get_random(ctx, (unsigned char **)&buf, &len);
-    demo_check_rc(result);
+    rc = get_random(ctx, (unsigned char **)&buf, &len);
+    check_rc(rc);
 
     printf("TPM returned random bytes length %d:\n", (int)len);
     if(output) {
@@ -44,10 +39,10 @@ int demo_random(context ctx, const char *output) {
 }
 
 
-int demo_sign(context ctx, const char *filename, const char *output) {
+int demo_sign(context *ctx, const char *filename, const char *output) {
     unsigned char data[1024], *buffer;
     size_t data_len = 0, buffer_len = 0;
-    context result;
+    TPM2_RC rc;
 
     printf("Demo sign\n");
 
@@ -55,8 +50,8 @@ int demo_sign(context ctx, const char *filename, const char *output) {
     data_len = fread(data, 1, 1024, fp);
     fclose(fp);
 
-    result = sign(ctx, data, data_len, &buffer, &buffer_len);
-    demo_check_rc(result);
+    rc = sign(ctx, data, data_len, &buffer, &buffer_len);
+    check_rc(rc);
 
     printf("TPM returned random bytes length %d:\n", (int)buffer_len);
     if(output) {
@@ -68,14 +63,14 @@ int demo_sign(context ctx, const char *filename, const char *output) {
 }
 
 
-int demo_pub(context ctx, const char *output) {
+int demo_pub(context *ctx, const char *output) {
     unsigned char *buf;
     size_t len = 0;
-    context result;
+    TPM2_RC rc;
 
-    printf("Demo pub\n");
-    result = get_pub(ctx, (unsigned char **)&buf, &len);
-    demo_check_rc(result);
+    printf("Demo pub %p\n", (void *)ctx->ectx);
+    rc = get_pub(ctx, (unsigned char **)&buf, &len);
+    check_rc(rc);
 
     printf("TPM returned Public key in PEM format\n");
     if(output) {
@@ -87,7 +82,7 @@ int demo_pub(context ctx, const char *output) {
 }
 
 
-int demo_clear(context ctx) {
+int demo_clear(context *ctx) {
     printf("Demo pub\n");
     return 0;
 }
@@ -110,8 +105,8 @@ int main(int argc, char *argv[]) {
     struct parg_state ps;
     int c;
     int li;
-    context ctx;
-    char *output = NULL, *input = NULL;
+    context ctx = {0};
+    char output[1024], input[1024];
     enum CMD {
         CMD_RANDOM,
         CMD_SIGN,
@@ -126,14 +121,13 @@ int main(int argc, char *argv[]) {
     while ((c = parg_getopt_long(&ps, argc, argv, "o:i:T:scprh", params_config, &li)) != -1) {
         switch (c) {
             case 'o':
-                output = strdup(ps.optarg);
+                strncpy(output, ps.optarg, 1024);
                 break;
             case 'i':
-                input = strdup(ps.optarg);
+                strncpy(input, ps.optarg, 1024);
                 break;
             case 'T':
-                ctx = init_tpm_device(ps.optarg);
-                if(!ctx.esys_ctx) {
+                if(init_tpm_device(ps.optarg, &ctx) != TPM2_RC_SUCCESS) {
                     fprintf(stderr, "Invalid or unsupported tcti type '%s'\n", ps.optarg);
                     return 1;
                 };
@@ -159,13 +153,13 @@ int main(int argc, char *argv[]) {
     }
     switch(cmd) {
         case CMD_RANDOM:
-            return demo_random(ctx, output);
+            return demo_random(&ctx, output);
         case CMD_SIGN: 
-            return demo_sign(ctx, input, output);
+            return demo_sign(&ctx, input, output);
         case CMD_PUB: 
-            return demo_pub(ctx, output);
+            return demo_pub(&ctx, output);
         case CMD_CLEAR: 
-            return demo_clear(ctx);
+            return demo_clear(&ctx);
         default:
             print_help(argv[0]);
     }

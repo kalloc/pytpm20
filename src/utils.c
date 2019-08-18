@@ -8,8 +8,8 @@ char * NUMERICS = "0123456789abcdef";
 
 unsigned char * bin_to_hex(unsigned char *from, unsigned char *to, size_t length) {
     to[(2 * length)] = 0;
-    int n = 0;
-    for(;n < length;n++) {
+    unsigned n = 0;
+    for(; n < length; n++) {
         to[(2 * n) + 1] = hdigit(from[n]);
         to[(2 * n)] = hdigit(from[n] >> 4);
     }

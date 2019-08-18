@@ -8,7 +8,8 @@ tpm2_clear
 tpm2_startup -c
 echo "ZEX" > message.dat
 
-CMD=../.build/src/demo
+ROOT=$(dirname $(dirname $(realpath $0)))
+CMD=${ROOT}/.build/src/tools
 
 if [[ ! -f ${CMD} ]]; then
     echo ${CMD} is not found
