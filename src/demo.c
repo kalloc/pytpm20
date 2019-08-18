@@ -127,6 +127,7 @@ int main(int argc, char *argv[]) {
                 strncpy(input, ps.optarg, 1024);
                 break;
             case 'T':
+                strncpy(ctx.device, ps.optarg, 1024);
                 if(init_tpm_device(ps.optarg, &ctx) != TPM2_RC_SUCCESS) {
                     fprintf(stderr, "Invalid or unsupported tcti type '%s'\n", ps.optarg);
                     return 1;
@@ -163,5 +164,6 @@ int main(int argc, char *argv[]) {
         default:
             print_help(argv[0]);
     }
+    cleanup_tpm_device(&ctx);
     return 0;
 }

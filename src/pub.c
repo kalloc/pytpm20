@@ -12,5 +12,5 @@ TPM2_RC get_pub(context *ctx, unsigned char **pubkey, size_t *pubkey_size) {
     if(convert_pubkey_ECC(&public->publicArea, pubkey, pubkey_size) != true) {
         return TSS2_BASE_RC_MALFORMED_RESPONSE;
     }
-    return TSS2_RC_SUCCESS;
+    return rc;
 }

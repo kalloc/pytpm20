@@ -93,6 +93,9 @@ TPM2_RC make_object_tpm(context *ctx, ESYS_TR *object) {
 
     *object = primaryPersistentHandle;
     rc = Esys_FlushContext(ctx->ectx, primaryHandle);
+    check_rc(rc);
+
+    rc = Esys_FlushContext(ctx->ectx, session);
     return rc;
 }
 

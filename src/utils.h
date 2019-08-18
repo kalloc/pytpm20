@@ -12,6 +12,7 @@
 
 typedef struct Context {
     ESYS_CONTEXT *ectx;
+    char device[1024];
 } context;
 
 #define ARRAY_LEN(x) (sizeof(x)/sizeof(x[0]))
@@ -30,6 +31,7 @@ TPM2_RC init_tpm_device(const char *, context *);
 TPM2_RC object_from_tpm(context *, ESYS_TR *, TPM2B_PUBLIC **);
 TPM2_RC tpm_start_auth_session(context *, ESYS_TR *);
 TPM2_RC make_object_tpm(context *, ESYS_TR *);
+void cleanup_tpm_device(context *ctx);
 bool convert_pubkey_ECC(TPMT_PUBLIC *, unsigned char **, size_t *); 
 void export_to_file(const char *, unsigned char *, size_t);
 void export_to_stdout(unsigned char *, size_t);
