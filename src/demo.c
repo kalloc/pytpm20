@@ -40,8 +40,8 @@ int demo_random(context *ctx, const char *output) {
 
 
 int demo_sign(context *ctx, const char *filename, const char *output) {
-    unsigned char data[1024], *buffer;
-    size_t data_len = 0, buffer_len = 0;
+    unsigned char data[1024], *buf;
+    size_t data_len = 0, buf_len = 0;
     TPM2_RC rc;
 
     printf("Demo sign\n");
@@ -50,15 +50,16 @@ int demo_sign(context *ctx, const char *filename, const char *output) {
     data_len = fread(data, 1, 1024, fp);
     fclose(fp);
 
-    rc = sign(ctx, data, data_len, &buffer, &buffer_len);
+    rc = sign(ctx, data, data_len, &buf, &buf_len);
     check_rc(rc);
 
-    printf("TPM returned random bytes length %d:\n", (int)buffer_len);
+    printf("TPM returned random bytes length %d:\n", (int)buf_len);
     if(output) {
-        export_to_file(output, buffer, buffer_len);
+        export_to_file(output, buf, buf_len);
     } else {
-        export_to_stdout(buffer, buffer_len);
+        export_to_stdout(buf, buf_len);
     }
+    free(buf);
     return 0;
 }
 
@@ -68,8 +69,8 @@ int demo_pub(context *ctx, const char *output) {
     size_t len = 0;
     TPM2_RC rc;
 
-    printf("Demo pub %p\n", (void *)ctx->ectx);
-    rc = get_pub(ctx, (unsigned char **)&buf, &len);
+    printf("Demo pub\n");
+    rc = pub(ctx, (unsigned char **)&buf, &len);
     check_rc(rc);
 
     printf("TPM returned Public key in PEM format\n");
@@ -78,6 +79,7 @@ int demo_pub(context *ctx, const char *output) {
     } else {
         export_to_stdout(buf, len);
     }
+    free(buf);
     return 0;
 }
 

@@ -24,7 +24,7 @@ typedef struct Context {
 #define OBJECT_PRIMARY_HANDLE 0x81010010
 
 TPM2_RC get_random(context *, unsigned char **, size_t *);
-TPM2_RC get_pub(context *, unsigned char **, size_t *);
+TPM2_RC pub(context *, unsigned char **, size_t *);
 TPM2_RC clear(context *);
 TPM2_RC sign(context *, unsigned char *, size_t, unsigned char **, size_t *);
 TPM2_RC init_tpm_device(const char *, context *);

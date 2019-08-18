@@ -5,6 +5,8 @@ build:
 clean:
 	rm -rf .build/src/
 
-tools: build
-	.build/src/demo -Tdevice --random
+python:
+	python setup.py build -b .build
 
+test: build python
+	.build/src/demo -Tdevice --random

@@ -1,7 +1,7 @@
 #include "utils.h"
 
 
-TPM2_RC get_pub(context *ctx, unsigned char **pubkey, size_t *pubkey_size) {
+TPM2_RC pub(context *ctx, unsigned char **pubkey, size_t *pubkey_size) {
     TPM2_RC rc;
     TPM2B_PUBLIC * public = {0};
     ESYS_TR object;
