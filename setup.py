@@ -55,7 +55,6 @@ version = '0.1.0'
 setup(name='tpm20',
       packages=['tpm20'],
       version=version,
-      build_base='.build',
       description='Simple TPM20 binding',
       author='Nikita Kuznetsov',
       author_email='me@daedalus.ru',
