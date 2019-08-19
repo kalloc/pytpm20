@@ -12,3 +12,7 @@ python:
 
 test: build python
 	.build/src/demo -Tdevice --random
+
+dist:
+	mkdir -p dist/
+	tar zcf dist/tpm20.src.tar.gz $(shell git ls-files)
