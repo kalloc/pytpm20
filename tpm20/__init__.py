@@ -21,8 +21,8 @@ class TPM20:
     def public_key(self) -> typing.Union[Exception, bytes]:
         return _tpm20.public()
 
-    def verify(self, public_key: bytes, signature: bytes, message: bytes) -> bool:
-        vk = VerifyingKey.from_der(public_key)
+    def verify(self, signature: bytes, message: bytes) -> bool:
+        vk = VerifyingKey.from_der(self.public_key)
         return vk.verify(signature, message, hashfunc=sha256, sigdecode=sigdecode_der)
 
 
