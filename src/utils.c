@@ -19,9 +19,13 @@ unsigned char * bin_to_hex(unsigned char *from, unsigned char *to, size_t length
 
 void export_to_file(const char *filename, unsigned char *buf, size_t len) {
     printf("Export into %s\n", filename);
-    FILE *fd = fopen(filename, "wb");
-    fwrite(buf, len, 1, fd);
-    fclose(fd);
+    FILE *fp = fopen(filename, "wb");
+    if(!fp) {
+        fprintf(stderr, "Unable to open %s\n", filename);
+        return;
+    }
+    fwrite(buf, len, 1, fp);
+    fclose(fp);
 }
 
 

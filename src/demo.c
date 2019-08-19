@@ -30,7 +30,7 @@ int demo_random(context *ctx, const char *output) {
     check_rc(rc);
 
     printf("TPM returned random bytes length %d:\n", (int)len);
-    if(output) {
+    if(output[0]) {
         export_to_file(output, buf, len);
     } else {
         export_to_stdout(buf, len);
@@ -43,18 +43,31 @@ int demo_sign(context *ctx, const char *filename, const char *output) {
     unsigned char data[1024], *buf;
     size_t data_len = 0, buf_len = 0;
     TPM2_RC rc;
+    FILE *fp;
 
     printf("Demo sign\n");
 
-    FILE *fp = fopen(filename, "rb");
+    if(filename[0] != 0) {
+        fp = fopen(filename, "rb");
+        if(!fp) {
+            fprintf(stderr, "Unable to open %s\n", filename);
+            return 1;
+        }
+    } else {
+        fp = stdin;
+    }
+
     data_len = fread(data, 1, 1024, fp);
-    fclose(fp);
+
+    if(filename) {
+        fclose(fp);
+    }
 
     rc = sign(ctx, data, data_len, &buf, &buf_len);
     check_rc(rc);
 
-    printf("TPM returned random bytes length %d:\n", (int)buf_len);
-    if(output) {
+    printf("TPM returned signature length %d:\n", (int)buf_len);
+    if(output[0]) {
         export_to_file(output, buf, buf_len);
     } else {
         export_to_stdout(buf, buf_len);
@@ -73,8 +86,8 @@ int demo_pub(context *ctx, const char *output) {
     rc = pub(ctx, (unsigned char **)&buf, &len);
     check_rc(rc);
 
-    printf("TPM returned Public key in PEM format\n");
-    if(output) {
+    printf("TPM returned Public key in DER format\n");
+    if(output[0]) {
         export_to_file(output, buf, len);
     } else {
         export_to_stdout(buf, len);
@@ -108,7 +121,7 @@ int main(int argc, char *argv[]) {
     int c;
     int li;
     context ctx = {0};
-    char output[1024], input[1024];
+    char output[1024] = {0}, input[1024] = {0};
     enum CMD {
         CMD_RANDOM,
         CMD_SIGN,

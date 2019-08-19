@@ -4,4 +4,4 @@ TEST_MESSAGE = b"ZEX" * 40
 
 signature = tpm20.sign(TEST_MESSAGE)
 is_ok = tpm20.verify(signature, TEST_MESSAGE) is True
-print("Verified {}".format("OK" if is_ok else "Failed"))
+print("Verified {}".format("OK" if is_ok else "FAIL"))
