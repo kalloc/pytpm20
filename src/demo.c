@@ -21,8 +21,8 @@ static const struct parg_option params_config[] = {
 
 
 int demo_random(context *ctx, const char *output) {
-    unsigned char buf[32];
-    size_t len = 0;
+    unsigned char buf[32] = {0};
+    size_t len = 32;
     TPM2_RC rc;
 
     printf("Demo random\n");
@@ -78,7 +78,7 @@ int demo_sign(context *ctx, const char *filename, const char *output) {
 
 
 int demo_pub(context *ctx, const char *output) {
-    unsigned char *buf;
+    unsigned char *buf = NULL;
     size_t len = 0;
     TPM2_RC rc;
 
@@ -118,9 +118,9 @@ static void print_help(char *name) {
 
 int main(int argc, char *argv[]) {
     struct parg_state ps;
-    int c;
-    int li;
+    int c, li;
     context ctx = {0};
+    TPM2_RC rc = 0;
     char output[1024] = {0}, input[1024] = {0};
     enum CMD {
         CMD_RANDOM,
@@ -169,16 +169,20 @@ int main(int argc, char *argv[]) {
     }
     switch(cmd) {
         case CMD_RANDOM:
-            return demo_random(&ctx, output);
+            rc = demo_random(&ctx, output);
+            break;
         case CMD_SIGN: 
-            return demo_sign(&ctx, input, output);
+            rc = demo_sign(&ctx, input, output);
+            break;
         case CMD_PUB: 
-            return demo_pub(&ctx, output);
+            rc= demo_pub(&ctx, output);
+            break;
         case CMD_CLEAR: 
-            return demo_clear(&ctx);
+            rc = demo_clear(&ctx);
+            break;
         default:
             print_help(argv[0]);
     }
     cleanup_tpm_device(&ctx);
-    return 0;
+    return rc;
 }

@@ -12,6 +12,7 @@
 
 typedef struct Context {
     ESYS_CONTEXT *ectx;
+    TSS2_TCTI_CONTEXT *tcti_context;
     char device[1024];
 } context;
 
@@ -20,6 +21,12 @@ typedef struct Context {
     if(rc != TSS2_RC_SUCCESS) { \
         return rc; \
     }
+
+#define check_rc_and_go(ret, label) \
+    if(rc != TSS2_RC_SUCCESS) { \
+        goto label; \
+    }
+
 
 #define OBJECT_PRIMARY_HANDLE 0x81010010
 

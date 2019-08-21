@@ -152,7 +152,7 @@ TPM2_RC sign(
             &in_scheme,
             validation,
             &signature);
-    check_rc(rc);
+    check_rc_and_go(rc, err);
 
     rc = Esys_TR_Close(ctx->ectx, &object);
     check_rc(rc);
@@ -161,5 +161,9 @@ TPM2_RC sign(
     check_rc(rc);
 
     *signature_raw = extract_ecdsa(&signature->signature.ecdsa, signature_size);
-    return TSS2_RC_SUCCESS;
+    free(signature);
+err:
+    Esys_Free(digest);
+    Esys_Free(validation);
+    return rc;
 }

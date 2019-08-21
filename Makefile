@@ -16,3 +16,4 @@ test: build python
 export:
 	mkdir -p dist/
 	tar zcf dist/tpm20.src.tar.gz $(shell git ls-files)
+

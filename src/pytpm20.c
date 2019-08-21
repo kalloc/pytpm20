@@ -45,7 +45,7 @@ err:
 
 static PyObject *py_getrandom(PyObject *self, PyObject *args){
     struct module_state *state;
-    PyObject* module;
+    PyObject *module, *result = NULL;
     unsigned char *buf;
     TPM2_RC rc = TPM2_RC_SUCCESS;
     size_t len = 0;
@@ -73,16 +73,16 @@ static PyObject *py_getrandom(PyObject *self, PyObject *args){
     rc = get_random(&state->ctx, &buf, &len);
     py_check_rc(rc, err);
 
-    return Py_BuildValue("y#", buf, len);
+    result = Py_BuildValue("y#", buf, len);
 
 err:
     free(buf);
-    return NULL;
+    return result;
 }
 
 static PyObject *py_sign(PyObject *self, PyObject *args){
     struct module_state *state;
-    PyObject* module;
+    PyObject *module, *result = NULL;
     Py_ssize_t data_len = 0;
     unsigned char *data, *buf;
     TPM2_RC rc = TPM2_RC_SUCCESS;
@@ -107,18 +107,16 @@ static PyObject *py_sign(PyObject *self, PyObject *args){
     rc = sign(&state->ctx, data, data_len, &buf, &buf_len);
     py_check_rc(rc, err);
 
-    PyObject* result = Py_BuildValue("y#", buf, buf_len);
+    result = Py_BuildValue("y#", buf, buf_len);
     free(buf);
 
-    return result;
-
 err:
-    return NULL;
+    return result;
 }
 
 static PyObject *py_public(PyObject *self, PyObject *args){
     struct module_state *state;
-    PyObject* module;
+    PyObject *module, *result = NULL;
     unsigned char *buf;
     TPM2_RC rc = TPM2_RC_SUCCESS;
     size_t len = 0;
@@ -133,13 +131,11 @@ static PyObject *py_public(PyObject *self, PyObject *args){
     rc = pub(&state->ctx, (unsigned char **)&buf, &len);
     py_check_rc(rc, err);
 
-    PyObject* result = Py_BuildValue("y#", buf, len);
+    result = Py_BuildValue("y#", buf, len);
     free(buf);
-    return result;
 
 err:
-    free(buf);
-    return NULL;
+    return result;
 }
 
 static PyMethodDef py_methods[] = {

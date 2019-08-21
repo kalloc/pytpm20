@@ -122,7 +122,9 @@ TPM2_RC object_from_tpm(context *ctx, ESYS_TR *object, TPM2B_PUBLIC **public) {
             public, &name, &qualified_name
         );
         check_rc(rc);
-    } 
+        free(name);
+        free(qualified_name);
+    };
     return rc;
 }
 
@@ -134,45 +136,46 @@ bool convert_pubkey_ECC(TPMT_PUBLIC *public, unsigned char **buf, size_t *len) {
     EC_POINT *point = NULL;
     const EC_GROUP *group = NULL;
     BIO *bio = NULL;
+    char *data_der = NULL;
     bool result = false;
     int rc;
 
     TPMS_ECC_POINT *tpm_point = &public->unique.ecc;
 
     key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
-    if (!key) {
+    if(!key) {
         return false;
     }
 
     group = EC_KEY_get0_group(key);
-    if (!group) {
+    if(!group) {
         goto out;
     }
 
     point = EC_POINT_new(group);
 
     x = BN_bin2bn(tpm_point->x.buffer, tpm_point->x.size, NULL);
-    if (!x) {
+    if(!x) {
         goto out;
     }
 
     y = BN_bin2bn(tpm_point->y.buffer, tpm_point->y.size, NULL);
-    if (!y) {
+    if(!y) {
         goto out;
     }
 
     rc = EC_POINT_set_affine_coordinates_GFp(group, point, x, y, NULL);
-    if (!rc) {
+    if(!rc) {
         /* Could not set affine coordinates */;
         goto out;
     }
 
     rc = EC_KEY_set_public_key(key, point);
-    if (!rc) {
+    if(!rc) {
         goto out;
     }
 	
-    if ((bio = BIO_new(BIO_s_mem())) == NULL) {
+    if((bio = BIO_new(BIO_s_mem())) == NULL) {
 		/* Cannot create buffer */
 		goto out;
 	}
@@ -182,23 +185,26 @@ bool convert_pubkey_ECC(TPMT_PUBLIC *public, unsigned char **buf, size_t *len) {
         goto out;
     }
 
-    if ((*len = BIO_get_mem_data(bio, buf)) <= 0) {
+    if((*len = BIO_get_mem_data(bio, &data_der)) <= 0) {
 		goto out;
     }
-
+    *buf = malloc(*len);
+    memcpy(*buf, data_der, *len);
     result = true;
-
 out:
-    if (x) {
+    if(x) {
         BN_free(x);
     }
-    if (y) {
+    if(y) {
         BN_free(y);
     }
-    if (point) {
+    if(point) {
         EC_POINT_free(point);
     }
-    if (key) {
+    if(bio) {
+        BIO_free(bio);
+    }
+    if(key) {
         EC_KEY_free(key);
     }
 
@@ -207,14 +213,12 @@ out:
 
 
 TPM2_RC init_tpm_device(const char *tcti, context *ctx) {
-    TSS2_TCTI_CONTEXT *tcti_context;
-
     TSS2_RC rc;
 
-    rc = Tss2_TctiLdr_Initialize(tcti, &tcti_context);
+    rc = Tss2_TctiLdr_Initialize(tcti, &ctx->tcti_context);
     check_rc(rc);
 
-    rc = Esys_Initialize(&ctx->ectx, tcti_context, NULL);
+    rc = Esys_Initialize(&ctx->ectx, ctx->tcti_context, NULL);
     check_rc(rc);
 
     rc = Esys_Startup(ctx->ectx, TPM2_SU_CLEAR);
@@ -224,5 +228,8 @@ TPM2_RC init_tpm_device(const char *tcti, context *ctx) {
 }
 
 void cleanup_tpm_device(context *ctx) {
-    Esys_Finalize(&ctx->ectx);
+    if(ctx->ectx) {
+        Esys_Finalize(&ctx->ectx);
+        Tss2_TctiLdr_Finalize(&ctx->tcti_context);
+    }
 }

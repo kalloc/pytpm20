@@ -9,8 +9,7 @@
 - [x] change return context
 - [x] add flushcontext and tr_close
 - [x] python module
-- [ ] valgrind (makefile)
-- [ ] check leaking memory
+- [x] check leaking memory
 - [x] python test
 
 # Nice to have
