@@ -7,7 +7,7 @@
 #include <openssl/rsa.h>
 
 
-TPM2_RC tpm_start_auth_session(context *ctx, ESYS_TR *session) {
+TPM2_RC tpm_start_auth_session(const context *ctx, ESYS_TR *session) {
     TPM2_RC rc;
     TPMT_SYM_DEF symmetric = {.algorithm = TPM2_ALG_NULL};
     rc = Esys_StartAuthSession(
@@ -18,7 +18,7 @@ TPM2_RC tpm_start_auth_session(context *ctx, ESYS_TR *session) {
     return rc;
 }
 
-TPM2_RC make_object_tpm(context *ctx, ESYS_TR *object) {
+TPM2_RC make_object_tpm(const context *ctx, ESYS_TR *object) {
     TPM2_RC rc;
     ESYS_TR session = ESYS_TR_NONE, 
             primaryHandle = ESYS_TR_NONE,
@@ -100,7 +100,7 @@ TPM2_RC make_object_tpm(context *ctx, ESYS_TR *object) {
 }
 
 
-TPM2_RC object_from_tpm(context *ctx, ESYS_TR *object, TPM2B_PUBLIC **public) {
+TPM2_RC object_from_tpm(const context *ctx, ESYS_TR *object, TPM2B_PUBLIC **public) {
     TPM2_RC rc;
     TPM2B_NAME *name, *qualified_name;
 

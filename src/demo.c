@@ -9,14 +9,14 @@
     x = Y;
 
 static const struct parg_option params_config[] = {
-	{ "tcti",   PARG_REQARG, NULL, 'T' },
-	{ "random", PARG_NOARG,  NULL, 'r' },
-	{ "clear",  PARG_NOARG,  NULL, 'c' },
-	{ "pub",    PARG_NOARG,  NULL, 'p' },
-	{ "sign",   PARG_NOARG,  NULL, 's' },
-	{ "input",  PARG_OPTARG, NULL, 'i' },
-	{ "output", PARG_OPTARG, NULL, 'o' },
-	{ 0, 0, 0, 0 }
+    { "tcti",   PARG_REQARG, NULL, 'T' },
+    { "random", PARG_NOARG,  NULL, 'r' },
+    { "clear",  PARG_NOARG,  NULL, 'c' },
+    { "pub",    PARG_NOARG,  NULL, 'p' },
+    { "sign",   PARG_NOARG,  NULL, 's' },
+    { "input",  PARG_OPTARG, NULL, 'i' },
+    { "output", PARG_OPTARG, NULL, 'o' },
+    { 0, 0, 0, 0 }
 };
 
 
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
         CMD_NIL
     } cmd = CMD_NIL;
 
-	parg_init(&ps);
+    parg_init(&ps);
 
     while ((c = parg_getopt_long(&ps, argc, argv, "o:i:T:scprh", params_config, &li)) != -1) {
         switch (c) {
@@ -151,13 +151,13 @@ int main(int argc, char *argv[]) {
             case 'r':
                 SET_CMD(cmd, CMD_RANDOM);
                 break;
-            case 's': 
+            case 's':
                 SET_CMD(cmd, CMD_SIGN);
                 break;
-            case 'p': 
+            case 'p':
                 SET_CMD(cmd, CMD_PUB);
                 break;
-            case 'c': 
+            case 'c':
                 SET_CMD(cmd, CMD_CLEAR);
                 break;
             case '?':
@@ -171,13 +171,13 @@ int main(int argc, char *argv[]) {
         case CMD_RANDOM:
             rc = demo_random(&ctx, output);
             break;
-        case CMD_SIGN: 
+        case CMD_SIGN:
             rc = demo_sign(&ctx, input, output);
             break;
-        case CMD_PUB: 
+        case CMD_PUB:
             rc= demo_pub(&ctx, output);
             break;
-        case CMD_CLEAR: 
+        case CMD_CLEAR:
             rc = demo_clear(&ctx);
             break;
         default:

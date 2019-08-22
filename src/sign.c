@@ -104,8 +104,8 @@ out:
 }
 
 TPM2_RC sign(
-        context *ctx,
-        unsigned char *input, size_t input_size,
+        const context *ctx,
+        const unsigned char *input, const size_t input_size,
         unsigned char **signature_raw, size_t *signature_size
     ) {
     TPM2B_DIGEST *digest = {0};
